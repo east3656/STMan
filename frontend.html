@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STM Service Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>STMan!</h1>
+    
+    <div class="form-group">
+        <label for="line-type">Type:</label>
+        <select id="line-type">
+            <option value="bus">Bus</option>
+            <option value="metro">Metro</option>
+        </select>
+        
+        <label for="line-number">Line Number:</label>
+        <input type="text" id="line-number" placeholder="e.g. 139 or Green">
+        
+        <button id="add-line">Add Line</button>
+    </div>
+    
+    <div class="saved-lines">
+        <h2>Your Saved Lines</h2>
+        <div id="lines-container">
+            <!-- Saved lines will be displayed here -->
+        </div>
+    </div>
+    
+    <button id="check-status">Check All Statuses</button>
+    
+    <script>
+     
+    </script>
+</body>
+</html>
