@@ -38,31 +38,137 @@
 <body>
     <h1>STMan!</h1>
     
-    <div class="form-group"> <!--Client chooses bus schedules he wishes to modify.-->>
-        <label for="line-type">Type:</label>
 
-        <select id="line-type"> 
+    <!--Client chooses bus schedules he wishes to modify.-->>
+    <div class="form-group"> 
+        <label for="schedule-type">Type:</label>
+
+        <select id="schedule-type"> 
 
             <option value="bus">Bus</option>
             <option value="metro">Metro</option>
 
         </select>
         
-        <label for="line-number">Line Number:</label>
-        <input type="text" id="line-number" placeholder="e.g. 139 or Green">
+        <label for="schedule-number">Line Number:</label>
+        <input type="text" id="schedule-number" placeholder="e.g. 139 or Green">
         
-        <button id="add-line">Add Bus/Subway schedule</button>
+        <button id="add-schedule">Add Bus/Subway schedule</button>
     </div>
-    
-    <div class="saved-lines"> <h2>Your Saved Bus/Subway Schedules</h2>  <!-- Saved lines will be displayed here -->
-        <div id="lines-container">
+
+
+     <!-- Saved lines will be displayed BELOW -->
+    <div class="saved-schedules"> <h2>Your Saved Bus/Subway Schedules</h2> 
+        <div id="schedules-container">
         </div>
     </div>
+
     
-    <button id="check-status">Check All Statuses</button> <!-- API update call -->>
+    <button id="check-status">Check All Statuses</button> <!-- button later used for API update call below in <script>s  -->>
     
+
     <script>
-     
+        //User "saved schedules" data stored locally.
+        let savedSchedules = JSON.parse(localStorage.getItem('stmLines')) || [];
+        
+        //DOM elements
+        const busOrSubwaySelect = document.getElementById('schedule-type');
+        const scheduleNumberInput = document.getElementById('schedule-number');
+        const addScheduleButton = document.getElementById('add-schedule');
+        const schedulesContainer = document.getElementById('schedules-container');
+        const checkStatusButton = document.getElementById('check-status');
+        
+        //Display saved schedules after each page load
+        function displaysavedSchedules() {
+            schedulesContainer.innerHTML = '';
+            
+            if (savedSchedules.length === 0) {
+                schedulesContainer.innerHTML = '<p>No lines saved yet. Add some above!</p>';
+                return;
+            }
+            
+            savedSchedules.forEach((line, index) => {
+                const lineItem = document.createElement('div');
+                lineItem.className = 'line-item';
+                lineItem.innerHTML = `
+                    <div>
+                        <strong>${line.type.toUpperCase()}</strong>: ${line.number}
+                        <span class="status">${line.status || 'Unknown'}</span>
+                    </div>
+                    <button class="remove-button" data-index="${index}">Remove</button>
+                `;
+                schedulesContainer.appendChild(lineItem);
+            });
+            
+            //event listener for the clear button.
+            document.querySelectorAll('.remove-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    savedSchedules.splice(index, 1);
+                    savedSchedules();
+                    displaysavedSchedules();
+                });
+            });
+        }
+
+
+        //Save schedules when applicable in script.
+        function savedSchedules() {
+            localStorage.setItem('stmLines', JSON.stringify(savedLines));
+        }
+
+         //Add a new schedule
+         addLineButton.addEventListener('click', function() {
+            const scheduleType = scheduleTypeSelect.value;
+            const scheduleNumber = scheduleNumberInput.value.trim();
+            
+            if (!scheduleNumber) {
+                alert('Please enter a line number');
+                return;
+            }
+            
+            //Check if line already exists
+            const exists = savedLines.some(line => 
+                line.type === scheduleType && line.number === scheduleNumber
+            );
+            
+            if (exists) {
+                alert('This line is already in your list');
+                return;
+            }
+            
+            savedLines.push({
+                type: scheduleType,
+                number: scheduleNumber,
+                status: 'Not checked yet'
+            });
+            
+            saveLines();
+            displaySavedLines();
+            scheduleNumberInput.value = '';
+        });
+        
+        // event listener for status checking button (RELEVANT TO API CALL)
+        checkStatusButton.addEventListener('click', async function() {
+            alert('filler');
+            
+            //We simulate status checks (replace with actual API integration)
+            savedLines = savedLines.map(line => {
+                //Random status for demo purposes
+                line.status = Math.random() > 0.7 ? 
+                    'Service interrupted' : 
+                    'Normal service';
+                return line;
+            });
+            
+            saveLines();
+            displaySavedLines();
+        });
+        
+        //final function execution.
+        displaySavedLines();
+        
+        
     </script>
 </body>
 </html>
