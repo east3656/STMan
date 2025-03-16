@@ -5,7 +5,7 @@ const cors = require('cors'); //cors for communication between frontend and back
 require('dotenv').config(); //.env file loading to use environment variables. you can look it up on npm later
 
 const app = express(); //Express application instance created and stored in app.
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; //PORT uses PORT env var first before going for the default port value of 3000
 
 //setting up middleware
 app.use(cors());
