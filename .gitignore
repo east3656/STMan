@@ -1,4 +1,6 @@
 # .gitignore
 .env
 node_modules/
-
+test-api.js
+package-lock.json
+package.json
