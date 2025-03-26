@@ -5,7 +5,6 @@ const cors = require('cors');
 require('dotenv').config();
 
 const STM_API_KEY = process.env.STM_API_KEY;
-const STM_CLIENT_SECRET = process.env.STM_CLIENT_SECRET;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,10 +20,11 @@ app.get('/api/service-status/:type/:number', async (req, res) => {
     try {
         const response = await axios.get(`https://api.stm.info/pub/od/i3/v2/messages/etatservice`, {
             headers: {
-                'apiKey': STM_API_KEY,
-                'clientSecret': STM_CLIENT_SECRET
+                'apiKey': STM_API_KEY
             }
         });
+
+        console.log("STM API Response:", response.data); // Debugging line
 
         res.json(response.data);
     } catch (error) {
@@ -32,6 +32,9 @@ app.get('/api/service-status/:type/:number', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch service status' });
     }
 });
+
+console.log("Using STM API Key:", STM_API_KEY);
+
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

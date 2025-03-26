@@ -31,63 +31,49 @@
             border: none;
             cursor: pointer;
         }
-
-       
     </style>
 </head>
 <body>
     <h1>STMan!</h1>
     
-
-    <!--Client chooses bus schedules he wishes to modify.-->>
     <div class="form-group"> 
         <label for="schedule-type">Type:</label>
-
         <select id="schedule-type"> 
-
             <option value="bus">Bus</option>
             <option value="metro">Metro</option>
-
         </select>
         
         <label for="schedule-number">Line Number:</label>
         <input type="text" id="schedule-number" placeholder="e.g. 139 or Green">
         
-        <button id="add-schedule">Add Bus/Subway schedule</button>
+        <button id="add-schedule">Add Bus/Subway Schedule</button>
     </div>
 
-
-     <!-- Saved lines will be displayed BELOW -->
-    <div class="saved-schedules"> <h2>Your Saved Bus/Subway Schedules</h2> 
-        <div id="schedules-container">
-        </div>
+    <div class="saved-schedules"> 
+        <h2>Your Saved Bus/Subway Schedules</h2> 
+        <div id="schedules-container"></div>
     </div>
 
+    <button id="check-status">Check All Statuses</button>
     
-    <button id="check-status">Check All Statuses</button> <!-- button later used for API update call below in <script>s  -->>
-    
-
     <script>
-        //User "saved schedules" data stored locally.
-        let saveSchedules = JSON.parse(localStorage.getItem('stmLines')) || [];
+        let userSchedules = JSON.parse(localStorage.getItem('stmLines')) || [];
         
-        //DOM elements
-        const busOrSubwaySelect = document.getElementById('schedule-type');
+        const scheduleTypeSelect = document.getElementById('schedule-type');
         const scheduleNumberInput = document.getElementById('schedule-number');
         const addScheduleButton = document.getElementById('add-schedule');
         const schedulesContainer = document.getElementById('schedules-container');
         const checkStatusButton = document.getElementById('check-status');
         
-        //Display saved schedules after each page load
-        function displaysaveSchedules() {
+        function displayUserSchedules() {
             schedulesContainer.innerHTML = '';
             
-            if (saveSchedules.length === 0) {
+            if (userSchedules.length === 0) {
                 schedulesContainer.innerHTML = '<p>No lines saved yet. Add some above!</p>';
                 return;
             }
             
-            saveSchedules.forEach((line, index) => {
+            userSchedules.forEach((line, index) => {
                 const lineItem = document.createElement('div');
                 lineItem.className = 'line-item';
                 lineItem.innerHTML = `
@@ -100,75 +86,52 @@
                 schedulesContainer.appendChild(lineItem);
             });
             
-            //event listener for the clear button.
             document.querySelectorAll('.remove-button').forEach(button => {
                 button.addEventListener('click', function() {
                     const index = parseInt(this.getAttribute('data-index'));
-                    saveSchedules.splice(index, 1);
-                    saveSchedules();
-                    displaysaveSchedules();
+                    userSchedules.splice(index, 1);
+                    saveUserSchedules();
+                    displayUserSchedules();
                 });
             });
         }
 
-
-        //Save schedules when applicable in script.
-        function saveSchedules() {
-            localStorage.setItem('stmLines', JSON.stringify(saveSchedules));
+        function saveUserSchedules() {
+            localStorage.setItem('stmLines', JSON.stringify(userSchedules));
         }
 
-         //Add a new schedule
-         addScheduleButton.addEventListener('click', function() {
-            const scheduleType = scheduleTypeSelect.value;
-            const scheduleNumber = scheduleNumberInput.value.trim();
-            
-            if (!scheduleNumber) {
-                alert('Please enter a line number');
-                return;
-            }
-            
-            //Check if line already exists
-            const exists = saveSchedules.some(line => 
-                line.type === scheduleType && line.number === scheduleNumber
+        // Event listener for status checking button
+checkStatusButton.addEventListener('click', async function () {
+    try {
+        const response = await fetch("http://localhost:3000/api/service-status"); // Adjust port if needed
+        if (!response.ok) {
+            throw new Error("Failed to fetch service statuses");
+        }
+        
+        const data = await response.json(); // Assuming your backend returns JSON
+        console.log("Fetched STM Data:", data); // Debugging
+
+        // Map fetched status to user schedules
+        userSchedules = userSchedules.map(line => {
+            const statusInfo = data.alerts.find(alert =>
+                alert.informed_entities.some(entity => 
+                    entity.route_short_name === line.number
+                )
             );
-            
-            if (exists) {
-                alert('This line is already in your list');
-                return;
-            }
-            
-            saveSchedules.push({
-                type: scheduleType,
-                number: scheduleNumber,
-                status: 'Not checked yet'
-            });
-            
-            saveSchedules();
-            displaysaveSchedules();
-            scheduleNumberInput.value = '';
+            line.status = statusInfo ? "Service interrupted" : "Normal service";
+            return line;
         });
+
+        saveUserSchedules();
+        displayUserSchedules();
+    } catch (error) {
+        console.error("Error fetching STM data:", error);
+        alert("Failed to fetch service statuses. Try again later.");
+    }
+});
+
         
-        // event listener for status checking button (RELEVANT TO API CALL)
-        checkStatusButton.addEventListener('click', async function() {
-            alert('filler');
-            
-            //We simulate status checks (replace with actual API integration)
-            saveSchedules = saveSchedules.map(line => {
-                //Random status for demo purposes
-                line.status = Math.random() > 0.7 ? 
-                    'Service interrupted' : 
-                    'Normal service';
-                return line;
-            });
-            
-            saveSchedules();
-            displaysaveSchedules();
-        });
-        
-        //final function execution.
-        displaysaveSchedules();
-        
-        
+        displayUserSchedules();
     </script>
 </body>
 </html>
