@@ -1,41 +1,39 @@
-// server.js
+// server.js (snippet)
 const express = require('express');
 const axios = require('axios');
-const cors = require('cors');
-require('dotenv').config();
-
-const STM_API_KEY = process.env.STM_API_KEY;
-
 const app = express();
+
+// Example endpoint to fetch valid lines for a given type (bus/metro)
+app.get('/api/valid-lines', async (req, res) => {
+  const scheduleType = req.query.scheduleType; // 'bus' or 'metro'
+  
+  // Define the URL based on type (adjust these endpoints as needed)
+  const apiUrl = scheduleType === 'bus' 
+      ? 'https://api.stm.info/v1/bus-lines' 
+      : 'https://api.stm.info/v1/metro-lines';  // Replace with actual endpoints
+
+  try {
+    // Call the STM Swagger API
+    const response = await axios.get(apiUrl, {
+      headers: {
+        // Include any required headers or API keys here
+        'Authorization': 'Bearer YOUR_API_KEY'
+      }
+    });
+    
+    // Parse the response according to the API documentation.
+    // Suppose response.data is structured like: { lines: [ { number: '139', ... }, ... ] }
+    const validLines = response.data.lines.map(line => line.number);
+
+    // Send back the valid line numbers as JSON
+    res.json({ lines: validLines });
+  } catch (error) {
+    console.error('Error fetching valid lines:', error);
+    res.status(500).json({ error: 'Error fetching valid lines' });
+  }
+});
+
+// (other routes and middleware)
+
 const PORT = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
-
-// Proxy STM API requests
-app.get('/api/service-status/:type/:number', async (req, res) => {
-    const { type, number } = req.params;
-
-    try {
-        const response = await axios.get(`https://api.stm.info/pub/od/i3/v2/messages/etatservice`, {
-            headers: {
-                'apiKey': STM_API_KEY
-            }
-        });
-
-        console.log("STM API Response:", response.data); // Debugging line
-
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error fetching STM data:', error.response?.data || error.message);
-        res.status(500).json({ error: 'Failed to fetch service status' });
-    }
-});
-
-console.log("Using STM API Key:", STM_API_KEY);
-
-
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

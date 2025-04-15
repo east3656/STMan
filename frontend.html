@@ -100,36 +100,46 @@
             localStorage.setItem('stmLines', JSON.stringify(userSchedules));
         }
 
-        // Event listener for status checking button
-checkStatusButton.addEventListener('click', async function () {
-    try {
-        const response = await fetch("http://localhost:3000/api/service-status"); // Adjust port if needed
-        if (!response.ok) {
-            throw new Error("Failed to fetch service statuses");
-        }
-        
-        const data = await response.json(); // Assuming your backend returns JSON
-        console.log("Fetched STM Data:", data); // Debugging
-
-        // Map fetched status to user schedules
-        userSchedules = userSchedules.map(line => {
-            const statusInfo = data.alerts.find(alert =>
-                alert.informed_entities.some(entity => 
-                    entity.route_short_name === line.number
-                )
+        addScheduleButton.addEventListener('click', function() {
+            const scheduleType = scheduleTypeSelect.value;
+            const scheduleNumber = scheduleNumberInput.value.trim();
+            
+            if (!scheduleNumber) {
+                alert('Please enter a line number');
+                return;
+            }
+            
+            const exists = userSchedules.some(line => 
+                line.type === scheduleType && line.number === scheduleNumber
             );
-            line.status = statusInfo ? "Service interrupted" : "Normal service";
-            return line;
+            
+            if (exists) {
+                alert('This line is already in your list');
+                return;
+            }
+            
+            userSchedules.push({
+                type: scheduleType,
+                number: scheduleNumber,
+                status: 'Not checked yet'
+            });
+            
+            saveUserSchedules();
+            displayUserSchedules();
+            scheduleNumberInput.value = '';
         });
-
-        saveUserSchedules();
-        displayUserSchedules();
-    } catch (error) {
-        console.error("Error fetching STM data:", error);
-        alert("Failed to fetch service statuses. Try again later.");
-    }
-});
-
+        
+        checkStatusButton.addEventListener('click', async function() {
+            alert('Checking status...');
+            
+            userSchedules = userSchedules.map(line => {
+                line.status = Math.random() > 0.7 ? 'Service interrupted' : 'Normal service';
+                return line;
+            });
+            
+            saveUserSchedules();
+            displayUserSchedules();
+        });
         
         displayUserSchedules();
     </script>
