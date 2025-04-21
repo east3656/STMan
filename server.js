@@ -1,39 +1,43 @@
-// server.js (snippet)
-const express = require('express');
+// server.js
 const axios = require('axios');
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
 const app = express();
 
-// Example endpoint to fetch valid lines for a given type (bus/metro)
-app.get('/api/valid-lines', async (req, res) => {
-  const scheduleType = req.query.scheduleType; // 'bus' or 'metro'
-  
-  // Define the URL based on type (adjust these endpoints as needed)
-  const apiUrl = scheduleType === 'bus' 
-      ? 'https://api.stm.info/v1/bus-lines' 
-      : 'https://api.stm.info/v1/metro-lines';  // Replace with actual endpoints
+// this will allow requests from any origin regardless of port conflict:
+app.use(cors());
 
+// define an endpoint that will call the STM API and return its JSON body to the frontend
+app.get('/api/valid-lines', async (req, res) => {
   try {
-    // Call the STM Swagger API
-    const response = await axios.get(apiUrl, {
-      headers: {
-        // Include any required headers or API keys here
-        'Authorization': 'Bearer YOUR_API_KEY'
-      }
+    const apiKey = process.env.STM_API_KEY;
+    console.log("Using API Key:", apiKey);
+    
+    // Make the call to the STM API.
+    const response = await axios.get('https://api.stm.info/pub/od/i3/v2/messages/etatservice', {
+      headers: { 'apiKey': apiKey }
     });
     
-    // Parse the response according to the API documentation.
-    // Suppose response.data is structured like: { lines: [ { number: '139', ... }, ... ] }
-    const validLines = response.data.lines.map(line => line.number);
-
-    // Send back the valid line numbers as JSON
-    res.json({ lines: validLines });
+    // Send the actual API JSON body back to the client.
+    res.json(response.data);
   } catch (error) {
-    console.error('Error fetching valid lines:', error);
-    res.status(500).json({ error: 'Error fetching valid lines' });
+    console.error('Error making API request:');
+    
+    if (error.response) {
+      console.error("Status:", error.response.status);
+      console.error("Data:", error.response.data);
+      console.error("Headers:", error.response.headers);
+      res.status(error.response.status).json(error.response.data);
+    } else if (error.request) {
+      console.error("No response received:", error.request);
+      res.status(500).json({ error: "No response received from STM API" });
+    } else {
+      console.error("Error setting up request:", error.message);
+      res.status(500).json({ error: error.message });
+    }
   }
 });
 
-// (other routes and middleware)
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log("Server running on port${PORT}"));

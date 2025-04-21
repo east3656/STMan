@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -59,9 +60,6 @@
     <button id="check-status">Check All Statuses</button>
     
     <script>
-        let apiResponse = null; 
-
-        let routes = {};
         let userSchedules = JSON.parse(localStorage.getItem('stmLines')) || [];
         
         const scheduleTypeSelect = document.getElementById('schedule-type');
@@ -70,9 +68,6 @@
         const schedulesContainer = document.getElementById('schedules-container');
         const checkStatusButton = document.getElementById('check-status');
         
-
-
-        //helper functions to display all schedules the user has saved and/or inputted. 
         function displayUserSchedules() {
             schedulesContainer.innerHTML = '';
             
@@ -81,14 +76,13 @@
                 return;
             }
             
-            userSchedules.forEach((line, index) => {    
+            userSchedules.forEach((line, index) => {
                 const lineItem = document.createElement('div');
                 lineItem.className = 'line-item';
                 lineItem.innerHTML = `
                     <div>
                         <strong>${line.type.toUpperCase()}</strong>: ${line.number}
-
-                         <span class="status">${line.status || 'Unknown'}</span>
+                        <span class="status">${line.status || 'Unknown'}</span>
                     </div>
                     <button class="remove-button" data-index="${index}">Remove</button>
                 `;
@@ -104,42 +98,73 @@
                 });
             });
         }
+
         function saveUserSchedules() {
             localStorage.setItem('stmLines', JSON.stringify(userSchedules));
         }
-        
-        
-        //helper function to check validity of line.
-        function isValidStop(userInput) {
-            return userInput in routes;
-        }
+
        
-    //adding a schedule involves edge case checking and refershing user view.
-    addScheduleButton.addEventListener('click', function() {
+    
+    addScheduleButton.addEventListener('click', async function() {
         const scheduleType = scheduleTypeSelect.value;
         const scheduleNumber = scheduleNumberInput.value.trim();
         
         if (!scheduleNumber) {
             alert('Please enter a line number');
             return;
-        }else{
-            if(isValidStop(scheduleNumber)){
-                userSchedules.push({
-                type: scheduleType,
-                number: scheduleNumber,
-                status: 'Not checked yet'
-                });
-            }
         }
         
+        // Validate the line by calling your backend endpoint
+        try {
+            const response = await fetch(`/api/valid-lines?scheduleType=${scheduleType}`);
+            const data = await response.json();
+
+            // Check if the returned list contains the entered line number
+            if (!data.lines.includes(scheduleNumber)) {
+                alert(`The line number "${scheduleNumber}" is not valid for ${scheduleType.toUpperCase()}.`);
+                return;
+            }
+        } catch (error) {
+            console.error('Error verifying the schedule:', error);
+            alert('Error verifying the schedule. Please try again later.');
+            return;
+        }
+
+        // Check if the line is already saved in userSchedules
+        const exists = userSchedules.some(line =>
+            line.type === scheduleType && line.number === scheduleNumber
+        );
+
+        if (exists) {
+            alert('This line is already in your list');
+            return;
+        }
+        
+        // If validation passes, add the new schedule entry
+        userSchedules.push({
+            type: scheduleType,
+            number: scheduleNumber,
+            status: 'Not checked yet'
+        });
+
         saveUserSchedules();
         displayUserSchedules();
         scheduleNumberInput.value = '';
     });
 
-        
 
-  // Function to call the backend endpoint and receive its response.
+
+
+
+        
+        displayUserSchedules();
+
+
+
+    </script>
+    
+  <script>
+  // Function to call the backend endpoint and log the JSON result.
   async function refreshSTMData() {
   try {
     const response = await fetch('http://localhost:3000/api/valid-lines');
@@ -148,54 +173,17 @@
       return;
     }
     const data = await response.json();
-    apiResponse = data; //stm response officially registered each time this function is called. we then parse it to store into local all instances of route
-    //numbers, followed by their mapping to the status description. All stored within routes hashmap. 
-
-
-    routes = {};
-    apiResponse.alerts.forEach(alert => {
-        // find the route number
-        const routeEnt = (alert.informed_entities || [])
-          .find(e => e.route_short_name != null);
-        if (!routeEnt) return;
-
-        const route = routeEnt.route_short_name;
-
-        // find the English description
-        const descEnt = (alert.description_texts || [])
-          .find(d => d.language === 'en');
-        const status = descEnt ? descEnt.text : '';
-
-        // 3) store it
-        routes[route] = status;
-      });
-
     console.log("STM API Data:", data);
-    console.log("stops: ", routes)
-
-    console.log(routes['161']);
-
   } catch (error) {
     console.error("Error fetching STM API data:", error);
   }
 }
-
-function checkStatus() {
-  userSchedules.forEach(line => {
-    // grab the latest English status text, or fall back
-    line.status = routes[line.number] || 'No update';
-  });
-  saveUserSchedules();
-  displayUserSchedules();
-}
-
-
-checkStatusButton.addEventListener("click", checkStatus);
 document.getElementById('refresh-api').addEventListener('click', refreshSTMData);
 
-refreshSTMData(); //initalize first.
-displayUserSchedules();
-
+  
+  // Attach the event listener to the refresh button.
+  document.getElementById('refresh-api').addEventListener('click', refreshSTMData);
+</script>
 </script>
 </body>
 </html>
