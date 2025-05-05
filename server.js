@@ -1,43 +1,61 @@
-// server.js
-const axios = require('axios');
+
+const fs     = require('fs');
+const path   = require('path');
+const axios  = require('axios');
+const express= require('express');
+const cors   = require('cors');
+const cron   = require('node-cron');
+
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
 const app = express();
-
-// this will allow requests from any origin regardless of port conflict:
 app.use(cors());
+//listens regardless of port conflict
 
-// define an endpoint that will call the STM API and return its JSON body to the frontend
-app.get('/api/valid-lines', async (req, res) => {
+//where it caches the STM JSON
+const CACHE_FILE = path.join(__dirname, 'stm-cache.json');
+
+// helper: fetch & cache STM data
+async function fetchAndCacheSTM() {
   try {
+    console.log('Fetching STM data at', new Date().toISOString());
     const apiKey = process.env.STM_API_KEY;
-    console.log("Using API Key:", apiKey);
-    
-    // Make the call to the STM API.
-    const response = await axios.get('https://api.stm.info/pub/od/i3/v2/messages/etatservice', {
-      headers: { 'apiKey': apiKey }
-    });
-    
-    // Send the actual API JSON body back to the client.
-    res.json(response.data);
-  } catch (error) {
-    console.error('Error making API request:');
-    
-    if (error.response) {
-      console.error("Status:", error.response.status);
-      console.error("Data:", error.response.data);
-      console.error("Headers:", error.response.headers);
-      res.status(error.response.status).json(error.response.data);
-    } else if (error.request) {
-      console.error("No response received:", error.request);
-      res.status(500).json({ error: "No response received from STM API" });
-    } else {
-      console.error("Error setting up request:", error.message);
-      res.status(500).json({ error: error.message });
-    }
+    const resp   = await axios.get(
+      'https://api.stm.info/pub/od/i3/v2/messages/etatservice',
+      { headers: { apiKey } }
+    );
+    // write JSON to disk
+    fs.writeFileSync(CACHE_FILE,
+      JSON.stringify(resp.data, null, 2),
+      'utf8'
+    );
+    console.log('STM data cached.');
+  } catch (err) {
+    console.error('STM fetch error:', err.message);
+  }
+}
+
+//on startup, fetch immediately:
+fetchAndCacheSTM();
+
+//schedule two fetches per day: at 06:00 and 18:00, for departure and return from/to home.
+cron.schedule('0 6 * * *',  fetchAndCacheSTM);
+cron.schedule('0 18 * * *', fetchAndCacheSTM);
+
+//endpoint now just reads the cached file:
+app.get('/api/valid-lines', (req, res) => {
+  if (!fs.existsSync(CACHE_FILE)) {
+    return res.status(503).json({ error: 'Cache not ready' });
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Cache read error' });
   }
 });
 
+// optionally, we serve our frontend from “public/ -IGNORE FOR NOW-”
+app.use(express.static(path.join(__dirname, 'public')));
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on port${PORT}"));
+app.listen(PORT, () => console.log(`Server on port ${PORT}`));
