@@ -1,5 +1,5 @@
 # STMan - Transit status checker
-Lightweight web application designed to only check on the status of buses and metros within the STM's transportation network using live information from the STM's API. Made as a heavy contrast 
+Extremely barebones web application designed to only check on the status of buses and metros within the STM's transportation network using live information from the STM's API. Made as a heavy contrast 
 to existing transit applications that tend to have too much information to my liking, and are not straightforward enough.
 
 The website can be accessed through the following link: https://stm-tracker.vercel.app/
