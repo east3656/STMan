@@ -1,10 +1,9 @@
-// api/lines.js
+// api/valid-lines.js
 import fetch from 'node-fetch';
-import dotenv from 'dotenv';
-dotenv.config();
 
 export default async function handler(req, res) {
   try {
+    // Always fetch fresh data from STM
     const stmRes = await fetch(
       `https://api.stm.info/pub/od/i3/v2/messages/etatservice?apiKey=${process.env.STM_API_KEY}`
     );
@@ -18,3 +17,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Internal server error' });
   }
 }
+
