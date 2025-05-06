@@ -5,12 +5,6 @@
   
       { "src": "index.html", "use": "@vercel/static" }
     ],
-  
-    "routes": [
-      { "src": "/api/valid-lines", "dest": "server.js" },
-  
-      { "src": "/(.*)",           "dest": "index.html" }
-    ],
 
     "headers": [
         {
