@@ -104,38 +104,27 @@
     };
 
     async function refreshSTMData() {
-      const secret = prompt('Enter your secret key:');
-      if (!secret) return;
-      try {
-        const res = await fetch(`/api/lines?key=${encodeURIComponent(secret)}`);
-        if (res.status === 401) {
-          return alert('❌ Unauthorized: wrong key');
-        }
-        if (!res.ok) {
-          console.error('Fetch error', res.status);
-          return alert('Error fetching STM data');
-        }
-        apiPayload = await res.json();
-
-        // rebuild route→status map
-        routesMap = {};
-        apiPayload.alerts.forEach(a => {
-          const routeEnt = (a.informed_entities||[])
-                           .find(e => e.route_short_name);
-          const route = routeEnt?.route_short_name;
-          const descEnt = (a.description_texts||[])
-                          .find(d => d.language==='en');
-          const txt = descEnt?.text?.replace(/\n/g,'<br>')||'';
-          if (route) routesMap[route] = txt;
-        });
-
-        console.log('Routes loaded:', Object.keys(routesMap));
-        alert('✅ STM data refreshed!');
-      } catch (err) {
-        console.error(err);
-        alert('Network or server error');
+    try {
+      const res = await fetch('/api/valid-lines');
+      if (!res.ok) {
+        console.error('HTTP error', res.status);
+        return alert('Error fetching STM data');
       }
+      apiPayload = await res.json();
+      // re-render your UI based on apiPayload:
+      const list = document.getElementById('lines');
+      list.innerHTML = '';
+      apiPayload.forEach(line => {
+        const li = document.createElement('li');
+        li.textContent = `${line.LineNumber}: ${line.Text}`;
+        list.appendChild(li);
+      });
+      alert('✅ Data refreshed!');
+    } catch (e) {
+      console.error(e);
+      alert('Refresh failed');
     }
+  }
 
     function checkStatus() {
       userSchedules.forEach(line => {
