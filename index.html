@@ -1,136 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>STMan! — STM Service Tracker</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width:800px; margin:0 auto; padding:20px }
-    h1 { color:#007bff }
-    .form-group { margin-bottom:15px }
-    input, select, button { padding:8px; margin-right:10px }
-    button { background:#007bff; color:#fff; border:none; cursor:pointer }
-    .status { margin-left:1em; font-style:italic }
-    .line-item { margin-bottom:8px }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>STMan! — STM Service Tracker</title>
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-OERcA2D2wkC1u5mVhXQ2VHNfKZQkN5qFc3q+62+snhCu4U2eFd9L/kp0tW1JXjmp"
+    crossorigin="anonymous"
+  />
 </head>
-<body>
-  <h1>STMan!</h1>
+<body class="bg-light">
+  <div class="container py-4">
+    <h1 class="text-primary mb-4">STMan!</h1>
 
-  <!-- this one button now prompts you for your secret key -->
-  <button id="refresh-api">🔄 Refresh STM Data</button>
+    <!-- Refresh button -->
+    <div class="mb-4">
+      <button id="refresh-api" class="btn btn-outline-primary">
+        🔄 Refresh STM Data
+      </button>
+    </div>
 
-  <div class="form-group">
-    <label>Type:</label>
-    <select id="schedule-type">
-      <option value="bus">Bus</option>
-      <option value="metro">Metro</option>
-    </select>
+    <!-- Add‑line form -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row gx-2 gy-3 align-items-center">
+          <div class="col-auto">
+            <select id="schedule-type" class="form-select">
+              <option value="bus">Bus</option>
+              <option value="metro">Metro</option>
+            </select>
+          </div>
+          <div class="col">
+            <input
+              id="schedule-number"
+              type="text"
+              class="form-control"
+              placeholder="e.g. 139 or Green"
+            />
+          </div>
+          <div class="col-auto">
+            <button id="add-schedule" class="btn btn-success">
+              ➕ Add Line
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <label>Line Number:</label>
-    <input id="schedule-number" placeholder="e.g. 139 or Green">
-    <button id="add-schedule">➕ Add Line</button>
+    <!-- Saved schedules -->
+    <h2 class="h5 mb-3">Your Saved Bus/Subway Schedules</h2>
+    <div id="schedules-container" class="list-group mb-3"></div>
+    <button id="check-status" class="btn btn-primary">✅ Check All Statuses</button>
   </div>
 
-  <h2>Your Saved Lines</h2>
-  <div id="schedules-container"></div>
-  <button id="check-status">✅ Check All Statuses</button>
+  <!-- Bootstrap JS Bundle (optional) -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-4cm0C10+/QbwwlBVqe40plmCQxQJTJ5v1IcxmgM+eJRb0V6jei+S7domH5eOmB2B"
+    crossorigin="anonymous"
+  ></script>
 
+  <!-- YOUR EXISTING SCRIPT -->
   <script>
-    let apiPayload = null;
-    let routesMap  = {};   // route → latest status text
-    let userSchedules = JSON.parse(localStorage.getItem('stmLines') || '[]');
-
+    let apiResponse = null; 
+    let routes = {};
+    let userSchedules = JSON.parse(localStorage.getItem('stmLines')) || [];
+    
     const scheduleTypeSelect = document.getElementById('schedule-type');
-    const scheduleNumberInput= document.getElementById('schedule-number');
-    const addScheduleButton  = document.getElementById('add-schedule');
+    const scheduleNumberInput = document.getElementById('schedule-number');
+    const addScheduleButton = document.getElementById('add-schedule');
     const schedulesContainer = document.getElementById('schedules-container');
-    const checkStatusButton  = document.getElementById('check-status');
-    const refreshApiButton   = document.getElementById('refresh-api');
-
-    function saveUserSchedules() {
-      localStorage.setItem('stmLines', JSON.stringify(userSchedules));
-    }
-
+    const checkStatusButton = document.getElementById('check-status');
+    
     function displayUserSchedules() {
       schedulesContainer.innerHTML = '';
       if (!userSchedules.length) {
-        schedulesContainer.innerHTML = '<p>No lines saved yet.</p>';
+        schedulesContainer.innerHTML = '<div class="list-group-item">No lines saved yet. Add some above!</div>';
         return;
       }
-      userSchedules.forEach((line, idx) => {
-        const div = document.createElement('div');
-        div.className = 'line-item';
-        const text = `<strong>${line.type.toUpperCase()}</strong> ${line.number}
-                      <span class="status">${line.status || 'Unknown'}</span>`;
-        div.innerHTML = text + ` <button data-idx="${idx}" class="remove-btn">✖️</button>`;
-        schedulesContainer.append(div);
+      userSchedules.forEach((line, index) => {
+        const item = document.createElement('div');
+        item.className = 'list-group-item d-flex justify-content-between align-items-center';
+        item.innerHTML = `
+          <div>
+            <strong>${line.type.toUpperCase()}</strong>: ${line.number}
+            <span class="ms-3 fst-italic">${line.status || 'Unknown'}</span>
+          </div>
+          <button class="btn btn-sm btn-outline-danger remove-button" data-index="${index}">✖️</button>
+        `;
+        schedulesContainer.append(item);
       });
-      document.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.onclick = () => {
-          userSchedules.splice(+btn.dataset.idx, 1);
+      document.querySelectorAll('.remove-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          userSchedules.splice(+btn.dataset.index, 1);
           saveUserSchedules();
           displayUserSchedules();
-        };
+        });
       });
     }
-
-    function isValidLine(num) {
-      return Boolean(routesMap[num]);
+    function saveUserSchedules() {
+      localStorage.setItem('stmLines', JSON.stringify(userSchedules));
     }
-
-    addScheduleButton.onclick = () => {
-      const type = scheduleTypeSelect.value;
-      const num  = scheduleNumberInput.value.trim();
-      if (!num) return alert('Enter a line number');
-      if (!isValidLine(num)) return alert('That line isn’t in today’s STM feed');
-      userSchedules.push({ type, number: num, status: 'Not checked yet' });
+    function isValidStop(num) {
+      return num in routes;
+    }
+    addScheduleButton.addEventListener('click', () => {
+      const scheduleType = scheduleTypeSelect.value;
+      const scheduleNumber = scheduleNumberInput.value.trim();
+      if (!scheduleNumber) return alert('Please enter a line number');
+      if (!isValidStop(scheduleNumber)) return alert('That line isn’t in today’s STM feed');
+      userSchedules.push({ type: scheduleType, number: scheduleNumber, status: 'Not checked yet' });
       saveUserSchedules();
       displayUserSchedules();
       scheduleNumberInput.value = '';
-    };
+    });
 
     async function refreshSTMData() {
-    try {
-      const res = await fetch('/api/valid-lines');
-      if (!res.ok) {
-        console.error('HTTP error', res.status);
-        return alert('Error fetching STM data');
+      try {
+        const response = await fetch('/api/valid-lines');
+        if (!response.ok) {
+          console.error('HTTP error:', response.status);
+          return alert('Error fetching STM data');
+        }
+        apiResponse = await response.json();
+        routes = {};
+        apiResponse.alerts.forEach(alert => {
+          const routeEnt = (alert.informed_entities || []).find(e => e.route_short_name != null);
+          if (!routeEnt) return;
+          const route = routeEnt.route_short_name;
+          const descEnt = (alert.description_texts || []).find(d => d.language === 'en');
+          routes[route] = descEnt ? descEnt.text : '';
+        });
+        console.log('STM API Data:', apiResponse);
+      } catch (error) {
+        console.error('Error fetching STM API data:', error);
+        alert('Refresh failed');
       }
-      apiPayload = await res.json();
-      // re-render your UI based on apiPayload:
-      const list = document.getElementById('lines');
-      list.innerHTML = '';
-      apiPayload.forEach(line => {
-        const li = document.createElement('li');
-        li.textContent = `${line.LineNumber}: ${line.Text}`;
-        list.appendChild(li);
-      });
-      alert('✅ Data refreshed!');
-    } catch (e) {
-      console.error(e);
-      alert('Refresh failed');
     }
-  }
-
-  document.getElementById('refresh')
-          .addEventListener('click', refreshSTMData);
-
-  loadLines();
 
     function checkStatus() {
       userSchedules.forEach(line => {
-        line.status = routesMap[line.number] || 'No update';
+        line.status = routes[line.number] || 'No update';
       });
       saveUserSchedules();
       displayUserSchedules();
     }
 
-    refreshApiButton.onclick = refreshSTMData;
-    checkStatusButton.onclick = checkStatus;
-
-    // page init
+    // wire up buttons & init
     displayUserSchedules();
+    document.getElementById('refresh-api').addEventListener('click', refreshSTMData);
+    checkStatusButton.addEventListener('click', checkStatus);
+    refreshSTMData();
   </script>
 </body>
 </html>

@@ -1,201 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STM Service Tracker</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        h1 {
-            color: #007bff;
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        input, button {
-            padding: 8px;
-            margin-right: 10px;
-        }
-        
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>STMan! — STM Service Tracker</title>
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-OERcA2D2wkC1u5mVhXQ2VHNfKZQkN5qFc3q+62+snhCu4U2eFd9L/kp0tW1JXjmp"
+    crossorigin="anonymous"
+  />
 </head>
-<body>
-    <h1>STMan!</h1>
-    <!-- Add this button where appropriate in your HTML -->
-<button id="refresh-api">Refresh STM Data</button>
+<body class="bg-light">
+  <div class="container py-4">
+    <h1 class="text-primary mb-4">STMan!</h1>
 
-    <div class="form-group"> 
-        <label for="schedule-type">Type:</label>
-        <select id="schedule-type"> 
-            <option value="bus">Bus</option>
-            <option value="metro">Metro</option>
-        </select>
-        
-        <label for="schedule-number">Line Number:</label>
-        <input type="text" id="schedule-number" placeholder="e.g. 139 or Green">
-        
-        <button id="add-schedule">Add Bus/Subway Schedule</button>
+    <!-- Refresh button -->
+    <div class="mb-4">
+      <button id="refresh-api" class="btn btn-outline-primary">
+        🔄 Refresh STM Data
+      </button>
     </div>
 
-    <div class="saved-schedules"> 
-        <h2>Your Saved Bus/Subway Schedules</h2> 
-        <div id="schedules-container"></div>
+    <!-- Add‑line form -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row gx-2 gy-3 align-items-center">
+          <div class="col-auto">
+            <select id="schedule-type" class="form-select">
+              <option value="bus">Bus</option>
+              <option value="metro">Metro</option>
+            </select>
+          </div>
+          <div class="col">
+            <input
+              id="schedule-number"
+              type="text"
+              class="form-control"
+              placeholder="e.g. 139 or Green"
+            />
+          </div>
+          <div class="col-auto">
+            <button id="add-schedule" class="btn btn-success">
+              ➕ Add Line
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <button id="check-status">Check All Statuses</button>
+    <!-- Saved schedules -->
+    <h2 class="h5 mb-3">Your Saved Bus/Subway Schedules</h2>
+    <div id="schedules-container" class="list-group mb-3"></div>
+    <button id="check-status" class="btn btn-primary">✅ Check All Statuses</button>
+  </div>
+
+  <!-- Bootstrap JS Bundle (optional) -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-4cm0C10+/QbwwlBVqe40plmCQxQJTJ5v1IcxmgM+eJRb0V6jei+S7domH5eOmB2B"
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- YOUR EXISTING SCRIPT -->
+  <script>
+    let apiResponse = null; 
+    let routes = {};
+    let userSchedules = JSON.parse(localStorage.getItem('stmLines')) || [];
     
-    <script>
-        let apiResponse = null; 
-
-        let routes = {};
-        let userSchedules = JSON.parse(localStorage.getItem('stmLines')) || [];
-        
-        const scheduleTypeSelect = document.getElementById('schedule-type');
-        const scheduleNumberInput = document.getElementById('schedule-number');
-        const addScheduleButton = document.getElementById('add-schedule');
-        const schedulesContainer = document.getElementById('schedules-container');
-        const checkStatusButton = document.getElementById('check-status');
-        
-
-
-        //helper functions to display all schedules the user has saved and/or inputted. 
-        function displayUserSchedules() {
-            schedulesContainer.innerHTML = '';
-            
-            if (userSchedules.length === 0) {
-                schedulesContainer.innerHTML = '<p>No lines saved yet. Add some above!</p>';
-                return;
-            }
-            
-            userSchedules.forEach((line, index) => {    
-                const lineItem = document.createElement('div');
-                lineItem.className = 'line-item';
-                lineItem.innerHTML = `
-                    <div>
-                        <strong>${line.type.toUpperCase()}</strong>: ${line.number}
-
-                         <span class="status">${line.status || 'Unknown'}</span>
-                    </div>
-                    <button class="remove-button" data-index="${index}">Remove</button>
-                `;
-                schedulesContainer.appendChild(lineItem);
-            });
-            
-            document.querySelectorAll('.remove-button').forEach(button => {
-                button.addEventListener('click', function() {
-                    const index = parseInt(this.getAttribute('data-index'));
-                    userSchedules.splice(index, 1);
-                    saveUserSchedules();
-                    displayUserSchedules();
-                });
-            });
-        }
-        function saveUserSchedules() {
-            localStorage.setItem('stmLines', JSON.stringify(userSchedules));
-        }
-        
-        
-        //helper function to check validity of line.
-        function isValidStop(userInput) {
-            return userInput in routes;
-        }
-       
-    //adding a schedule involves edge case checking and refershing user view.
-    addScheduleButton.addEventListener('click', function() {
-        const scheduleType = scheduleTypeSelect.value;
-        const scheduleNumber = scheduleNumberInput.value.trim();
-        
-        if (!scheduleNumber) {
-            alert('Please enter a line number');
-            return;
-        }else{
-            if(isValidStop(scheduleNumber)){
-                userSchedules.push({
-                type: scheduleType,
-                number: scheduleNumber,
-                status: 'Not checked yet'
-                });
-            }
-        }
-        
-        saveUserSchedules();
-        displayUserSchedules();
-        scheduleNumberInput.value = '';
+    const scheduleTypeSelect = document.getElementById('schedule-type');
+    const scheduleNumberInput = document.getElementById('schedule-number');
+    const addScheduleButton = document.getElementById('add-schedule');
+    const schedulesContainer = document.getElementById('schedules-container');
+    const checkStatusButton = document.getElementById('check-status');
+    
+    function displayUserSchedules() {
+      schedulesContainer.innerHTML = '';
+      if (!userSchedules.length) {
+        schedulesContainer.innerHTML = '<div class="list-group-item">No lines saved yet. Add some above!</div>';
+        return;
+      }
+      userSchedules.forEach((line, index) => {
+        const item = document.createElement('div');
+        item.className = 'list-group-item d-flex justify-content-between align-items-center';
+        item.innerHTML = `
+          <div>
+            <strong>${line.type.toUpperCase()}</strong>: ${line.number}
+            <span class="ms-3 fst-italic">${line.status || 'Unknown'}</span>
+          </div>
+          <button class="btn btn-sm btn-outline-danger remove-button" data-index="${index}">✖️</button>
+        `;
+        schedulesContainer.append(item);
+      });
+      document.querySelectorAll('.remove-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          userSchedules.splice(+btn.dataset.index, 1);
+          saveUserSchedules();
+          displayUserSchedules();
+        });
+      });
+    }
+    function saveUserSchedules() {
+      localStorage.setItem('stmLines', JSON.stringify(userSchedules));
+    }
+    function isValidStop(num) {
+      return num in routes;
+    }
+    addScheduleButton.addEventListener('click', () => {
+      const scheduleType = scheduleTypeSelect.value;
+      const scheduleNumber = scheduleNumberInput.value.trim();
+      if (!scheduleNumber) return alert('Please enter a line number');
+      if (!isValidStop(scheduleNumber)) return alert('That line isn’t in today’s STM feed');
+      userSchedules.push({ type: scheduleType, number: scheduleNumber, status: 'Not checked yet' });
+      saveUserSchedules();
+      displayUserSchedules();
+      scheduleNumberInput.value = '';
     });
 
-        
-
-  // Function to call the backend endpoint and receive its response.
-  async function refreshSTMData() {
-  try {
-    const response = await fetch('/api/lines');
-    if (!response.ok) {
-      console.error('HTTP error:', response.status);
-      return;
+    async function refreshSTMData() {
+      try {
+        const response = await fetch('/api/valid-lines');
+        if (!response.ok) {
+          console.error('HTTP error:', response.status);
+          return alert('Error fetching STM data');
+        }
+        apiResponse = await response.json();
+        routes = {};
+        apiResponse.alerts.forEach(alert => {
+          const routeEnt = (alert.informed_entities || []).find(e => e.route_short_name != null);
+          if (!routeEnt) return;
+          const route = routeEnt.route_short_name;
+          const descEnt = (alert.description_texts || []).find(d => d.language === 'en');
+          routes[route] = descEnt ? descEnt.text : '';
+        });
+        console.log('STM API Data:', apiResponse);
+      } catch (error) {
+        console.error('Error fetching STM API data:', error);
+        alert('Refresh failed');
+      }
     }
-    const data = await response.json();
-    apiResponse = data; //stm response officially registered each time this function is called. we then parse it to store into local all instances of route
-    //numbers, followed by their mapping to the status description. All stored within routes hashmap. 
 
-
-    routes = {};
-    apiResponse.alerts.forEach(alert => {
-        // find the route number
-        const routeEnt = (alert.informed_entities || [])
-          .find(e => e.route_short_name != null);
-        if (!routeEnt) return;
-
-        const route = routeEnt.route_short_name;
-
-        // find the English description
-        const descEnt = (alert.description_texts || [])
-          .find(d => d.language === 'en');
-        const status = descEnt ? descEnt.text : '';
-
-        // 3) store it
-        routes[route] = status;
+    function checkStatus() {
+      userSchedules.forEach(line => {
+        line.status = routes[line.number] || 'No update';
       });
+      saveUserSchedules();
+      displayUserSchedules();
+    }
 
-    console.log("STM API Data:", data);
-    console.log("stops: ", routes)
-
-    console.log(routes['161']);
-
-  } catch (error) {
-    console.error("Error fetching STM API data:", error);
-  }
-}
-
-function checkStatus() {
-  userSchedules.forEach(line => {
-    // grab the latest English status text, or fall back
-    line.status = routes[line.number] || 'No update';
-  });
-  saveUserSchedules();
-  displayUserSchedules();
-}
-
-
-checkStatusButton.addEventListener("click", checkStatus);
-document.getElementById('refresh-api').addEventListener('click', refreshSTMData);
-
-refreshSTMData(); //initalize first.
-displayUserSchedules();
-
-</script>
+    // wire up buttons & init
+    displayUserSchedules();
+    document.getElementById('refresh-api').addEventListener('click', refreshSTMData);
+    checkStatusButton.addEventListener('click', checkStatus);
+    refreshSTMData();
+  </script>
 </body>
 </html>
