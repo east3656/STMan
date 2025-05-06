@@ -5,6 +5,10 @@
         "src": "api/valid-lines.js",
         "use": "@vercel/node"
       }
-    ]
+    ],
+    "routes": [
+    { "src": "/",        "dest": "/index.html" },
+    { "src": "/(.*)",    "dest": "/$1" }
+  ]
   }
   
