@@ -112,7 +112,7 @@
       }
       apiPayload = await res.json();
       // re-render your UI based on apiPayload:
-      const list = document.getElementById('lines');
+      const list = document.getElementById('schedules-container');
       list.innerHTML = '';
       apiPayload.forEach(line => {
         const li = document.createElement('li');
