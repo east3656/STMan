@@ -2,7 +2,7 @@
     "version": 2,
     "builds": [
       {
-        "src": "api/valid‑lines.js",
+        "src": "api/valid-lines.js",
         "use": "@vercel/node"
       }
     ]
