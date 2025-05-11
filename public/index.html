@@ -74,23 +74,24 @@
 </head>
 <body>
     <h1>STMan!</h1>
-<button id="refresh-api">Refresh STM Data</button>
+
+<h2>Current Metro Status</h2>
+<div class="main-lines">
+  <div class="line-card" id="card-yellow">
+    <strong>Yellow</strong>
+    <span class="status" id="status-yellow">–</span>
+  </div>
 
     <div class="form-group"> 
-        <label for="schedule-type">Type:</label>
-        <select id="schedule-type"> 
-            <option value="bus">Bus</option>
-            <option value="metro">Metro</option>
-        </select>
         
         <label for="schedule-number">Line Number:</label>
-        <input type="text" id="schedule-number" placeholder="e.g. 139 or Green">
+        <input type="text" id="schedule-number" placeholder="e.g. 139 or 161">
         
         <button id="add-schedule">Add Bus/Subway Schedule</button>
     </div>
 
     <div class="saved-schedules"> 
-        <h2>Your Saved Bus/Subway Schedules</h2> 
+        <h2>Your Saved Bus/Subway Schedules</h2>    
         <div id="schedules-container"></div>
     </div>
 
@@ -102,7 +103,6 @@
         let routes = {};
         let userSchedules = JSON.parse(localStorage.getItem('stmLines')) || [];
         
-        const scheduleTypeSelect = document.getElementById('schedule-type');
         const scheduleNumberInput = document.getElementById('schedule-number');
         const addScheduleButton = document.getElementById('add-schedule');
         const schedulesContainer = document.getElementById('schedules-container');
@@ -124,7 +124,7 @@
                 lineItem.className = 'line-item';
                 lineItem.innerHTML = `
                     <div>
-                        <strong>${line.type.toUpperCase()}</strong>: ${line.number}
+                        <strong>BUS</strong>: ${line.number}
 
                          <span class="status">${line.status || 'Unknown'}</span>
                     </div>
@@ -161,7 +161,7 @@
             alert('Please enter a line number');
             return;
         }else{
-        // **prevent duplicates** by type+number
+        // **prevent duplicates** 
             const exists = userSchedules.some(ls =>
             ls.type === scheduleType && ls.number === scheduleNumber
             );
@@ -226,6 +226,7 @@
 }
 
 function checkStatus() {
+    refreshSTMData();
   userSchedules.forEach(line => {
     // grab the latest English status text, or fall back
     line.status = routes[line.number] || 'No update';
@@ -236,7 +237,6 @@ function checkStatus() {
 
 
 checkStatusButton.addEventListener("click", checkStatus);
-document.getElementById('refresh-api').addEventListener('click', refreshSTMData);
 
 refreshSTMData(); //initalize first.
 displayUserSchedules();
