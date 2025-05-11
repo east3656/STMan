@@ -276,6 +276,7 @@
 
     console.log(routes['161']);
 
+    displayMetroLines();
   } catch (error) {
     console.error("Error fetching STM API data:", error);
   }
@@ -322,7 +323,6 @@ checkStatusButton.addEventListener("click", checkStatus);
 
 refreshSTMData(); //initalize first.
 displayUserSchedules();
-displayMetroLines();
 </script>
 </body>
 </html>
