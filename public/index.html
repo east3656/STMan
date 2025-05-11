@@ -15,6 +15,22 @@
         h1 {
             color: #007bff;
         }
+        h1 {
+            position: relative;
+            display: inline-block;
+            padding-bottom: 0.25em;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 4px;
+            background: #00d4ff;
+            border-radius: 2px;
+        }
         
         .form-group {
             margin-bottom: 15px;
@@ -70,17 +86,56 @@
         opacity: 0.6;
         cursor: not-allowed;
         }
+
+
+        .metro-lines {
+        display: flex;
+        gap: 1rem;              
+        justify-content: stretch; 
+        margin-bottom: 1.5rem;
+        }
+
+        .metro-line {
+        flex: 1;                 
+        padding: 1rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        text-align: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        }
+
+        #yellow  { background-color: #FDD835; color: #333; }
+        #blue    { background-color: #1976D2; }
+        #orange  { background-color: #FF9800; }
+        #green   { background-color: #43A047; }
+
+        .metro-line .status {
+        margin-top: 0.5rem;
+        font-style: italic;
+        font-weight: 400;
+        font-size: 0.9rem;
+        }
+
+
+
     </style>
 </head>
 <body>
     <h1>STMan!</h1>
 
 <h2>Current Metro Status</h2>
-<div class="main-lines">
-  <div class="line-card" id="card-yellow">
-    <strong>Yellow</strong>
-    <span class="status" id="status-yellow">–</span>
-  </div>
+
+<div class="metro-lines">
+  <div id="yellow"   class="metro-line">Yellow Line<br><span class="status">—</span></div>
+  <div id="blue"     class="metro-line">Blue Line<br><span class="status">—</span></div>
+  <div id="orange"   class="metro-line">Orange Line<br><span class="status">—</span></div>
+  <div id="green"    class="metro-line">Green Line<br><span class="status">—</span></div>
+</div>
+
 
     <div class="form-group"> 
         
@@ -102,6 +157,10 @@
 
         let routes = {};
         let userSchedules = JSON.parse(localStorage.getItem('stmLines')) || [];
+
+
+        const greenLine = document.getElementById('green');
+
         
         const scheduleNumberInput = document.getElementById('schedule-number');
         const addScheduleButton = document.getElementById('add-schedule');
@@ -141,6 +200,7 @@
                     displayUserSchedules();
                 });
             });
+
         }
         function saveUserSchedules() {
             localStorage.setItem('stmLines', JSON.stringify(userSchedules));
@@ -153,36 +213,31 @@
         }
        
     //adding a schedule involves edge case checking and refershing user view.
-    addScheduleButton.addEventListener('click', function() {
-        const scheduleType = scheduleTypeSelect.value;
-        const scheduleNumber = scheduleNumberInput.value.trim();
-        
-        if (!scheduleNumber) {
-            alert('Please enter a line number');
-            return;
-        }else{
-        // **prevent duplicates** 
-            const exists = userSchedules.some(ls =>
-            ls.type === scheduleType && ls.number === scheduleNumber
-            );
-                if (exists) {
-                    return alert(`You’ve already added ${scheduleType} ${scheduleNumber}`);
+        addScheduleButton.addEventListener('click', function() {
+            const scheduleNumber = scheduleNumberInput.value.trim();
+            
+            if (!scheduleNumber) {
+                alert('Please enter a line number');
+                return;
+            }else{
+            // **prevent duplicates** 
+                const exists = userSchedules.some(ls.number === scheduleNumber
+                );
+                    if (exists) {
+                        return alert(`You’ve already added ${scheduleNumber}`);
+                    }
+                if(isValidStop(scheduleNumber)){
+                    userSchedules.push({
+                    number: scheduleNumber,
+                    status: 'Not checked yet'
+                    });
                 }
-            if(isValidStop(scheduleNumber)){
-                userSchedules.push({
-                type: scheduleType,
-                number: scheduleNumber,
-                status: 'Not checked yet'
-                });
             }
-        }
-        
-        saveUserSchedules();
-        displayUserSchedules();
-        scheduleNumberInput.value = '';
-    });
-
-        
+            
+            saveUserSchedules();
+            displayUserSchedules();
+            scheduleNumberInput.value = '';
+        });
 
   // Function to call the backend endpoint and receive its response.
   async function refreshSTMData() {
@@ -211,7 +266,7 @@
           .find(d => d.language === 'en');
         const status = descEnt ? descEnt.text : '';
 
-        // 3) store it
+        // store it
         routes[route] = status;
       });
 
@@ -224,6 +279,25 @@
     console.error("Error fetching STM API data:", error);
   }
 }
+
+function displayMetroLines(){
+    const metroMap = {
+    green:  '1',   // green line is 1
+    orange: '2',   // orange is 2
+    yellow: '4',   // and so on.
+    blue:   '5'    // 
+    };
+
+    Object.entries(metroMap).forEach(([color, routeNum]) => {
+    const box = document.getElementById(color);
+    if (!box) return;
+    const statusSpan = box.querySelector('.status');
+    statusSpan.textContent = routes[routeNum] || 'No data';
+    });
+
+}
+
+
 
 function checkStatus() {
     refreshSTMData();
@@ -240,7 +314,7 @@ checkStatusButton.addEventListener("click", checkStatus);
 
 refreshSTMData(); //initalize first.
 displayUserSchedules();
-
+displayMetroLines();
 </script>
 </body>
 </html>
