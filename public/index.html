@@ -31,11 +31,49 @@
             border: none;
             cursor: pointer;
         }
+
+        .line-item {
+        background: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: transform 0.1s ease-in-out;
+        }
+        .line-item:hover {
+        transform: translateY(-2px);
+        }
+
+        .line-item strong {
+        font-size: 1.1em;
+        }
+        .line-item .status {
+        color: #555;
+        margin-left: 8px;
+        font-style: normal;
+        }
+
+        .remove-button {
+        background: #e74c3c;
+        padding: 6px 10px;
+        border-radius: 4px;
+        }
+        .remove-button:hover {
+        background: #c0392b;
+        }
+
+        button[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
     <h1>STMan!</h1>
-    <!-- Add this button where appropriate in your HTML -->
 <button id="refresh-api">Refresh STM Data</button>
 
     <div class="form-group"> 
@@ -123,6 +161,13 @@
             alert('Please enter a line number');
             return;
         }else{
+        // **prevent duplicates** by type+number
+            const exists = userSchedules.some(ls =>
+            ls.type === scheduleType && ls.number === scheduleNumber
+            );
+                if (exists) {
+                    return alert(`You’ve already added ${scheduleType} ${scheduleNumber}`);
+                }
             if(isValidStop(scheduleNumber)){
                 userSchedules.push({
                 type: scheduleType,
