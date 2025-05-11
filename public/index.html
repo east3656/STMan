@@ -221,7 +221,7 @@
                 return;
             }else{
             // **prevent duplicates** 
-                const exists = userSchedules.some(ls.number === scheduleNumber
+                const exists = userSchedules.some(ls => ls.number === scheduleNumber
                 );
                     if (exists) {
                         return alert(`You’ve already added ${scheduleNumber}`);
