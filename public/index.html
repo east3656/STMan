@@ -281,30 +281,30 @@
   }
 }
 
-function displayMetroLines(){
-    const metroMap = {
-    green:  '1',   // green line is 1
-    orange: '2',   // orange is 2
-    yellow: '4',   // and so on.
-    blue:   '5'    // 
-    };
+function displayMetroLines() {
+  const metroMap = {
+    green:  "1",
+    orange: "2",
+    yellow: "4",
+    blue:   "5"
+  };
 
-    Object.entries(metroMap).forEach(([color, routeNum]) => {
-    const box = document.getElementById(color);
-    if (!box) return;
-    const statusSpan = box.querySelector('.status');
-    statusSpan.textContent = routes[routeNum] || 'No data';
-    });
+  Object.entries(metroMap).forEach(([colorId, routeNum]) => {
+    const card = document.getElementById(colorId);
+    if (!card) return;  // in case the div is missing
 
+    const statusText = routes[routeNum] || 'No data';
 
-    for (const [cardId, routeNum] of Object.entries(METRO_LINES)) {
-    const card = document.getElementById(cardId);
-    const span = card.querySelector('span');
-    span.textContent = routes[routeNum] || 'No data';
-  }
-
+    // find (or create) a .status element inside the card
+    let statusEl = card.querySelector('.status');
+    if (!statusEl) {
+      statusEl = document.createElement('span');
+      statusEl.className = 'status';
+      card.appendChild(statusEl);
+    }
+    statusEl.textContent = statusText;
+  });
 }
-
 
 
 function checkStatus() {
