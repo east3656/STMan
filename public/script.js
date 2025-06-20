@@ -116,10 +116,6 @@
         routes[route] = status;
       });
 
-    console.log("STM API Data:", data);
-    console.log("stops: ", routes)
-
-    console.log(routes['161']);
 
     displayMetroLines();
   } catch (error) {
